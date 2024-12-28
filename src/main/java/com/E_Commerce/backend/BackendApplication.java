@@ -1,6 +1,6 @@
 package com.E_Commerce.backend;
 
-import com.E_Commerce.backend.lib.authConfig.JWTService;
+import com.E_Commerce.backend.service.utils.JWTService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 

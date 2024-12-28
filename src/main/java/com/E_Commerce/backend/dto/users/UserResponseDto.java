@@ -8,6 +8,9 @@ public record UserResponseDto(
         @NotNull(message = "Email cannot be null")
         String email,
 
+        @NotNull(message = "Username cannot be null")
+        String username,
+
         @NotNull(message = "Role cannot be null")
         String role
 ) {

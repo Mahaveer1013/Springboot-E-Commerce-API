@@ -1,6 +1,6 @@
-package com.E_Commerce.backend.lib.authConfig;
+package com.E_Commerce.backend.service.utils;
 
-import com.E_Commerce.backend.lib.enums.UserRole;
+import com.E_Commerce.backend.lib.auth.JwtPayload;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -29,10 +29,11 @@ public class JWTService {
         }
     }
 
-    public String generateToken(Long id, String username, UserRole role) {
+    public String generateToken(Long id, String username, String email, String role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", id);
         claims.put("role", role);
+        claims.put("email", email);
         return Jwts
                 .builder()
                 .claims()
@@ -57,8 +58,9 @@ public class JWTService {
     public JwtPayload extractData(String token) {
         Long id = extractClaim(token, claims -> claims.get("id", Long.class));  // Get 'id' as Long
         String username = extractClaim(token, Claims::getSubject);
-        UserRole role = extractClaim(token, claims -> claims.get("role", UserRole.class));
-        return new JwtPayload(id, username, role);
+        String role = extractClaim(token, claims -> claims.get("role", String.class));
+        String email = extractClaim(token, claims -> claims.get("email", String.class));
+        return new JwtPayload(username, email, role);
     }
 
     private <T> T extractClaim(String token, Function<Claims, T> claimResolver) {

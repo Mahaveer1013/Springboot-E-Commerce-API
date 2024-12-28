@@ -33,6 +33,7 @@ public class UserMapper {
         return new UserResponseDto(
                 user.getId(),
                 user.getEmail(),
+                user.getUsername(),
                 user.getRole().name()
         );
     }

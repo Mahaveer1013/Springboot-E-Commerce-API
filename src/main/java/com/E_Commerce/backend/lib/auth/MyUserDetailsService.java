@@ -1,4 +1,4 @@
-package com.E_Commerce.backend.lib.authConfig;
+package com.E_Commerce.backend.lib.auth;
 
 import com.E_Commerce.backend.model.Users;
 import com.E_Commerce.backend.repository.UserRepository;

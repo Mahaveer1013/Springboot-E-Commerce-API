@@ -8,9 +8,9 @@ import org.springframework.http.ResponseEntity;
 
 public interface IUserService {
     ResponseEntity<ApiResponse> addUser(UserDto user);
-
-    ResponseEntity<ApiResponse> getUser(Long id);
     
+    ResponseEntity<ApiResponse> getUser(Long id);
+
     ResponseEntity<ApiResponse> getAllUser(Pageable pageable);
 
     ResponseEntity<ApiResponse> updateUser(Long id, UserDto userDto);

@@ -1,14 +1,16 @@
 package com.E_Commerce.backend.service.user;
 
-import com.E_Commerce.backend.lib.authConfig.JWTService;
 import com.E_Commerce.backend.lib.enums.UserRole;
 import com.E_Commerce.backend.lib.exception.InvalidEnumException;
 import com.E_Commerce.backend.lib.exception.UserNotFoundException;
 import com.E_Commerce.backend.mapper.UserMapper;
 import com.E_Commerce.backend.model.Users;
 import com.E_Commerce.backend.repository.UserRepository;
+import com.E_Commerce.backend.request.AuthDto;
 import com.E_Commerce.backend.request.UserDto;
 import com.E_Commerce.backend.response.ApiResponse;
+import com.E_Commerce.backend.service.utils.JWTService;
+import com.E_Commerce.backend.service.utils.MailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -27,6 +29,7 @@ public class UserService implements IUserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final MailService mailService;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
     @Autowired
@@ -35,9 +38,10 @@ public class UserService implements IUserService {
     @Autowired
     private JWTService jwtService;
 
-    public UserService(UserRepository userRepository, UserMapper userMapper) {
+    public UserService(UserRepository userRepository, UserMapper userMapper, MailService mailService) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
+        this.mailService = mailService;
     }
 
 
@@ -93,6 +97,9 @@ public class UserService implements IUserService {
             if (userDto.email() != null) {
                 user.setEmail(userDto.email());
             }
+            if (userDto.username() != null) {
+                user.setUsername(userDto.username());
+            }
             if (userDto.role() != null) {
                 try {
                     user.setRole(UserRole.valueOf(userDto.role().toUpperCase()));
@@ -101,7 +108,7 @@ public class UserService implements IUserService {
                 }
             }
             userRepository.save(user);
-            return ResponseEntity.status(400).body(new ApiResponse("User Updated Successfully", null));
+            return ResponseEntity.status(200).body(new ApiResponse("User Updated Successfully", null));
         } catch (Exception e) {
             throw new RuntimeException("Error while updating user: " + e.getMessage());
         }
@@ -120,11 +127,11 @@ public class UserService implements IUserService {
     }
 
     @Override
-    public ResponseEntity<ApiResponse> verify(Users user) {
+    public ResponseEntity<ApiResponse> verify(AuthDto user) {
         try {
             Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()));
             if (authentication.isAuthenticated())
-                return ResponseEntity.status(200).body(new ApiResponse("User Login Success", jwtService.generateToken(user.getId(), user.getUsername(), user.getRole())));
+                return ResponseEntity.status(200).body(new ApiResponse("User Login Success", jwtService.generateToken(user.getId(), user.getUsername(), user.getEmail(), user.getRole().toString())));
             else return ResponseEntity.status(401).body(new ApiResponse("Credentials Not Matched", null));
         } catch (Exception e) {
             return ResponseEntity.status(401).body(new ApiResponse(e.getMessage(), null));

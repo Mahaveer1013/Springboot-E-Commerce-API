@@ -1,7 +1,7 @@
 package com.E_Commerce.backend.controller;
 
-import com.E_Commerce.backend.lib.authConfig.JwtPayload;
-import com.E_Commerce.backend.lib.authConfig.UserPrincipal;
+import com.E_Commerce.backend.lib.auth.JwtPayload;
+import com.E_Commerce.backend.lib.auth.UserPrincipal;
 import com.E_Commerce.backend.request.UserDto;
 import com.E_Commerce.backend.response.ApiResponse;
 import com.E_Commerce.backend.service.user.UserService;
@@ -25,7 +25,7 @@ public class UserController {
     @GetMapping
     public ResponseEntity<ApiResponse> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
         UserPrincipal userPrincipal = (UserPrincipal) userDetails;
-        return ResponseEntity.status(200).body(new ApiResponse(null, new JwtPayload(userPrincipal.getId(), userPrincipal.getUsername(), userPrincipal.getRole())));
+        return ResponseEntity.status(200).body(new ApiResponse(null, new JwtPayload(userPrincipal.getUsername(), userPrincipal.getEmail(), userPrincipal.getRole())));
     }
 
     @GetMapping("/all-users")
