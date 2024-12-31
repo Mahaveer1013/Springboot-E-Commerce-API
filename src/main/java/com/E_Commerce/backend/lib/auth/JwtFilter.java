@@ -1,5 +1,8 @@
 package com.E_Commerce.backend.lib.auth;
 
+import com.E_Commerce.backend.lib.exception.UserNotFoundException;
+import com.E_Commerce.backend.model.Users;
+import com.E_Commerce.backend.repository.UserRepository;
 import com.E_Commerce.backend.service.utils.JWTService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,8 +25,12 @@ public class JwtFilter extends OncePerRequestFilter {
     //    private final String[] excludedPaths = {"/login", "/register", "/user/**"};
     @Autowired
     ApplicationContext context;
+
     @Autowired
     private JWTService jwtService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(
@@ -38,7 +45,9 @@ public class JwtFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
             JwtPayload userData = jwtService.extractData(token);
-            username = userData.getUsername();
+            Long id = userData.getId();
+            Users users = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User Not Found"));
+            username = users.getUsername();
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {

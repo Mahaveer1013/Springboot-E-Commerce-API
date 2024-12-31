@@ -6,11 +6,10 @@ import com.E_Commerce.backend.lib.exception.UserNotFoundException;
 import com.E_Commerce.backend.mapper.UserMapper;
 import com.E_Commerce.backend.model.Users;
 import com.E_Commerce.backend.repository.UserRepository;
-import com.E_Commerce.backend.request.AuthDto;
+import com.E_Commerce.backend.request.LoginDto;
 import com.E_Commerce.backend.request.UserDto;
 import com.E_Commerce.backend.response.ApiResponse;
 import com.E_Commerce.backend.service.utils.JWTService;
-import com.E_Commerce.backend.service.utils.MailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -29,7 +28,6 @@ public class UserService implements IUserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
-    private final MailService mailService;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
     @Autowired
@@ -38,10 +36,9 @@ public class UserService implements IUserService {
     @Autowired
     private JWTService jwtService;
 
-    public UserService(UserRepository userRepository, UserMapper userMapper, MailService mailService) {
+    public UserService(UserRepository userRepository, UserMapper userMapper) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
-        this.mailService = mailService;
     }
 
 
@@ -75,6 +72,11 @@ public class UserService implements IUserService {
     public ResponseEntity<ApiResponse> getUser(Long id) {
         Users user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User Not Found"));
         return ResponseEntity.status(400).body(new ApiResponse(null, userMapper.user_to_userDto(user)));
+    }
+
+    @Override
+    public Users finduser(Long id) {
+        return userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User Not Found"));
     }
 
     @Override
@@ -127,15 +129,16 @@ public class UserService implements IUserService {
     }
 
     @Override
-    public ResponseEntity<ApiResponse> verify(AuthDto user) {
+    public ResponseEntity<ApiResponse> verify(LoginDto user) {
         try {
-            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()));
-            if (authentication.isAuthenticated())
-                return ResponseEntity.status(200).body(new ApiResponse("User Login Success", jwtService.generateToken(user.getId(), user.getUsername(), user.getEmail(), user.getRole().toString())));
-            else return ResponseEntity.status(401).body(new ApiResponse("Credentials Not Matched", null));
+            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.username(), user.password()));
+            if (authentication.isAuthenticated()) {
+                Users userData = userRepository.findByUsername(user.username());
+                return ResponseEntity.status(200).body(new ApiResponse("User Login Success", jwtService.generateToken(userData.getId(), userData.getUsername(), userData.getEmail(), userData.getRole().toString())));
+            } else return ResponseEntity.status(401).body(new ApiResponse("Credentials Not Matched", null));
         } catch (Exception e) {
+            System.out.println(e);
             return ResponseEntity.status(401).body(new ApiResponse(e.getMessage(), null));
         }
     }
-
 }

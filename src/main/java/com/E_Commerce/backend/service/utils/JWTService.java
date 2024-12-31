@@ -60,7 +60,7 @@ public class JWTService {
         String username = extractClaim(token, Claims::getSubject);
         String role = extractClaim(token, claims -> claims.get("role", String.class));
         String email = extractClaim(token, claims -> claims.get("email", String.class));
-        return new JwtPayload(username, email, role);
+        return new JwtPayload(id, username, email, role);
     }
 
     private <T> T extractClaim(String token, Function<Claims, T> claimResolver) {

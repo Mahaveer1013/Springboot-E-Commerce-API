@@ -25,7 +25,7 @@ public class UserController {
     @GetMapping
     public ResponseEntity<ApiResponse> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
         UserPrincipal userPrincipal = (UserPrincipal) userDetails;
-        return ResponseEntity.status(200).body(new ApiResponse(null, new JwtPayload(userPrincipal.getUsername(), userPrincipal.getEmail(), userPrincipal.getRole())));
+        return ResponseEntity.status(200).body(new ApiResponse(null, new JwtPayload(userPrincipal.getId(), userPrincipal.getUsername(), userPrincipal.getEmail(), userPrincipal.getRole())));
     }
 
     @GetMapping("/all-users")
@@ -44,7 +44,7 @@ public class UserController {
         return userService.updateUser(id, userDto);
     }
 
-    @DeleteMapping
+    @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse> deleteUser(@PathVariable("id") Long id) {
         return userService.deleteUser(id);
     }
