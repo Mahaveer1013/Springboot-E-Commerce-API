@@ -28,10 +28,9 @@ public class Users extends BaseSchema {
     private String email;
 
     @NotNull(message = "Password cannot be null")
-    @Size(min = 1, message = "Password must be at least 8 characters long")
+    @Size(min = 8, message = "Password must be at least 8 characters long")
     private String password;
 
-    //    @Enumerated(EnumType.STRING)
     @NotNull(message = "Role cannot be null")
     private UserRole role;
 

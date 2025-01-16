@@ -1,24 +1,20 @@
 package com.E_Commerce.backend.service.user;
 
-import com.E_Commerce.backend.model.Users;
-import com.E_Commerce.backend.request.LoginDto;
-import com.E_Commerce.backend.request.UserDto;
-import com.E_Commerce.backend.response.ApiResponse;
+import com.E_Commerce.backend.dto.users.UserRequest;
+import com.E_Commerce.backend.dto.users.UserResponse;
+import com.E_Commerce.backend.model.PaginatedResponse;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
 
 public interface IUserService {
-    ResponseEntity<ApiResponse> addUser(UserDto user);
 
-    ResponseEntity<ApiResponse> getUser(Long id);
+    UserResponse addUser(UserRequest user);
 
-    Users finduser(Long id);
+    UserResponse finduser(Long id);
 
-    ResponseEntity<ApiResponse> getAllUser(Pageable pageable);
+    PaginatedResponse<UserResponse> getAllUser(Pageable pageable);
 
-    ResponseEntity<ApiResponse> updateUser(Long id, UserDto userDto);
+    UserResponse updateUser(Long id, UserRequest userDto);
 
-    ResponseEntity<ApiResponse> deleteUser(Long id);
+    void deleteUser(Long id);
 
-    ResponseEntity<ApiResponse> verify(LoginDto user);
 }

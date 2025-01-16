@@ -1,27 +1,27 @@
 package com.E_Commerce.backend.service.user;
 
+import com.E_Commerce.backend.dto.users.UserMapper;
+import com.E_Commerce.backend.dto.users.UserRequest;
+import com.E_Commerce.backend.dto.users.UserResponse;
 import com.E_Commerce.backend.lib.enums.UserRole;
-import com.E_Commerce.backend.lib.exception.InvalidEnumException;
+import com.E_Commerce.backend.lib.exception.InvalidPasswordException;
+import com.E_Commerce.backend.lib.exception.MissingFieldsException;
+import com.E_Commerce.backend.lib.exception.UserAlreadyExistsException;
 import com.E_Commerce.backend.lib.exception.UserNotFoundException;
-import com.E_Commerce.backend.mapper.UserMapper;
+import com.E_Commerce.backend.model.PaginatedResponse;
 import com.E_Commerce.backend.model.Users;
 import com.E_Commerce.backend.repository.UserRepository;
-import com.E_Commerce.backend.request.LoginDto;
-import com.E_Commerce.backend.request.UserDto;
-import com.E_Commerce.backend.response.ApiResponse;
 import com.E_Commerce.backend.service.utils.JWTService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import javax.validation.ConstraintViolationException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class UserService implements IUserService {
@@ -41,104 +41,104 @@ public class UserService implements IUserService {
         this.userMapper = userMapper;
     }
 
-
     @Override
-    public ResponseEntity<ApiResponse> addUser(UserDto user) {
-        try {
-            Users newUser = userMapper.userDto_to_user(user);
-            newUser.setPassword(encoder.encode(newUser.getPassword()));
-            if (userRepository.existsByUsername(newUser.getUsername())) {
-                return ResponseEntity.status(400).body(new ApiResponse("User already exists with the given username", null));
-            }
-            if (userRepository.existsByEmail(newUser.getEmail())) {
-                return ResponseEntity.status(400).body(new ApiResponse("User already exists with the given email", null));
-            }
-            userRepository.save(newUser);
-            return ResponseEntity.status(200).body(new ApiResponse("User Added Successfully", null));
-        } catch (DataIntegrityViolationException e) {
-            return ResponseEntity.badRequest().body(new ApiResponse("Database Constraint Violation", null));
-        } catch (ConstraintViolationException e) {
-            return ResponseEntity.status(400).body(new ApiResponse("Constraint violation in the data provided.", null));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(400).body(new ApiResponse("Invalid user data provided", null));
-        } catch (InvalidEnumException e) {
-            return ResponseEntity.status(400).body(new ApiResponse("Invalid role provided", null));
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(new ApiResponse("An unexpected error occurred. Please try again later.", null));
+    public UserResponse addUser(UserRequest user) {
+        List<String> missingFields = new ArrayList<>();
+
+        // Check for missing fields and collect them
+        if (user.getUsername() == null) missingFields.add("username");
+        if (user.getPassword() == null) missingFields.add("password");
+        if (user.getRole() == null) missingFields.add("role");
+        if (user.getEmail() == null) missingFields.add("email");
+
+        // If there are any missing fields, throw an exception with details
+        if (!missingFields.isEmpty()) {
+            throw new MissingFieldsException("Missing required fields: " + String.join(", ", missingFields));
         }
+
+        // Check password length
+        if (user.getPassword().length() < 8) {
+            throw new InvalidPasswordException("Password length must be at least 8 characters.");
+        }
+
+        // Check if user already exists by username
+        if (userRepository.existsByUsername(user.getUsername())) {
+            throw new UserAlreadyExistsException("User already exists with the given username.");
+        }
+
+        // Check if user already exists by email
+        if (userRepository.existsByEmail(user.getEmail())) {
+            throw new UserAlreadyExistsException("User already exists with the given email.");
+        }
+
+        // Map UserRequest to Users entity
+        Users newUser = userMapper.toEntity(user);
+
+        // Password encoding
+        newUser.setPassword(encoder.encode(newUser.getPassword()));
+
+        // Save new user to the database
+        userRepository.save(newUser);
+
+        // Return mapped UserResponse
+        return userMapper.toResponse(newUser);
     }
 
     @Override
-    public ResponseEntity<ApiResponse> getUser(Long id) {
+    public UserResponse finduser(Long id) {
         Users user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User Not Found"));
-        return ResponseEntity.status(400).body(new ApiResponse(null, userMapper.user_to_userDto(user)));
+        return userMapper.toResponse(user);
     }
 
     @Override
-    public Users finduser(Long id) {
-        return userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User Not Found"));
+    public PaginatedResponse<UserResponse> getAllUser(Pageable pageable) {
+        Page<Users> userPage = userRepository.findAll(pageable);
+
+        List<UserResponse> userResponses = userPage.getContent()
+                .stream()
+                .map(userMapper::toResponse)
+                .toList();
+
+        return new PaginatedResponse<>(
+                userResponses,
+                userPage.getNumber(),
+                userPage.getSize(),
+                userPage.getTotalElements(),
+                userPage.getTotalPages(),
+                userPage.isLast()
+        );
     }
 
     @Override
-    public ResponseEntity<ApiResponse> getAllUser(Pageable pageable) {
-        try {
-            Page<Users> userPage = userRepository.findAll(pageable);
-            return ResponseEntity.status(400).body(new ApiResponse(null, userPage.getContent().stream().map(userMapper::user_to_userDto).toList()));
-        } catch (Exception e) {
-            throw new RuntimeException("Error while getting all users: " + e.getMessage());
+    public UserResponse updateUser(Long id, UserRequest userRequest) {
+        Users user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User Not Found"));
+        userRepository.findByEmail(userRequest.getEmail()).ifPresent(existingUser -> {
+            throw new DataIntegrityViolationException("User already exists with the given email");
+        });
+
+        if (userRequest.getEmail() != null) {
+            user.setEmail(userRequest.getEmail());
         }
-    }
-
-    @Override
-    public ResponseEntity<ApiResponse> updateUser(Long id, UserDto userDto) {
-        try {
-            Users user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User Not Found"));
-            userRepository.findByEmail(userDto.email()).ifPresent(existingUser -> {
-                throw new DataIntegrityViolationException("User already exists with the given email");
-            });
-            if (userDto.email() != null) {
-                user.setEmail(userDto.email());
+        if (userRequest.getUsername() != null) {
+            user.setUsername(userRequest.getUsername());
+        }
+        if (userRequest.getRole() != null) {
+            try {
+                user.setRole(UserRole.valueOf(userRequest.getRole().toString().toUpperCase()));
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("Invalid role value: " + userRequest.getRole());
             }
-            if (userDto.username() != null) {
-                user.setUsername(userDto.username());
-            }
-            if (userDto.role() != null) {
-                try {
-                    user.setRole(UserRole.valueOf(userDto.role().toUpperCase()));
-                } catch (IllegalArgumentException ex) {
-                    throw new IllegalArgumentException("Invalid role value: " + userDto.role());
-                }
-            }
-            userRepository.save(user);
-            return ResponseEntity.status(200).body(new ApiResponse("User Updated Successfully", null));
-        } catch (Exception e) {
-            throw new RuntimeException("Error while updating user: " + e.getMessage());
         }
+        userRepository.save(user);
+        return userMapper.toResponse(user);
     }
 
     @Override
-    public ResponseEntity<ApiResponse> deleteUser(Long id) {
-        try {
-            userRepository.findById(id).ifPresentOrElse(userRepository::delete, () -> {
-                throw new UserNotFoundException("User Not Found");
-            });
-            return ResponseEntity.status(400).body(new ApiResponse("User Deleted Successfully", null));
-        } catch (Exception e) {
-            throw new RuntimeException("Error while deleting user: " + e.getMessage());
-        }
+    public void deleteUser(Long id) {
+        userRepository.findById(id).ifPresentOrElse(userRepository::delete, () -> {
+            throw new UserNotFoundException("User Not Found");
+        });
     }
 
-    @Override
-    public ResponseEntity<ApiResponse> verify(LoginDto user) {
-        try {
-            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.username(), user.password()));
-            if (authentication.isAuthenticated()) {
-                Users userData = userRepository.findByUsername(user.username());
-                return ResponseEntity.status(200).body(new ApiResponse("User Login Success", jwtService.generateToken(userData.getId(), userData.getUsername(), userData.getEmail(), userData.getRole().toString())));
-            } else return ResponseEntity.status(401).body(new ApiResponse("Credentials Not Matched", null));
-        } catch (Exception e) {
-            System.out.println(e);
-            return ResponseEntity.status(401).body(new ApiResponse(e.getMessage(), null));
-        }
-    }
+
 }

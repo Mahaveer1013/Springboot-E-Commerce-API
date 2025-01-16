@@ -11,7 +11,7 @@ import lombok.*;
 @Entity
 @Builder
 @Table(name = "user_details")
-public class UserDetails extends BaseSchema {
+public class UserInfo extends BaseSchema {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "id", unique = true)

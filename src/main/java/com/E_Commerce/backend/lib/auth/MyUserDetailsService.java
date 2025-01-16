@@ -18,14 +18,14 @@ public class MyUserDetailsService implements UserDetailsService {
     @Autowired
     private UserRepository userRepo;
 
-    static public UserDetails getCurrentUser() {
+    static public UserPrincipal getCurrentUser() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()
                 || !(authentication.getPrincipal() instanceof UserDetails)) {
             logger.warn("No authenticated user found in the security context");
             return null;
         }
-        return (UserDetails) authentication.getPrincipal();
+        return (UserPrincipal) authentication.getPrincipal();
     }
 
     @Override
